@@ -1,14 +1,36 @@
 interface Vehicle {
     name: string,
     licensePlate: string,
-    created_at: Date
+    created_at: Date | string
 }
 
 (function () {
 
     const $ = (query: string): HTMLInputElement | null => document.querySelector(query);
 
+    function calcParkedTime(time: number): string {
+        const minutes = Math.floor(time / 60000);
+        const seconds = Math.floor((time % 60000) / 1000);
+
+        return `${minutes}m e ${seconds}s`;
+    }
+
     function parking() {
+
+        //Remove vehicle from filled parking space
+        function removeVehicle(licensePlate: string) {
+            const vehicleToRemove = readParkingSpacesFilled().find(vehicle => vehicle.licensePlate === licensePlate);
+
+            const now = new Date();
+            const parkedTime = calcParkedTime(now.getTime() - new Date(vehicleToRemove.created_at).getTime());
+
+            if (confirm(`O veículo permaneceu por ${parkedTime}. Deseja encerrar?`)) {
+                saveFilledParkingSpace(readParkingSpacesFilled().filter((vehicle) => vehicle.licensePlate !== licensePlate))
+                renderFilledParkingSpaces()
+            } else {
+                return;
+            }
+        }
 
         //Render the filled parking spaces saved on the localStorage in the table
         function renderFilledParkingSpaces() {
@@ -44,9 +66,13 @@ interface Vehicle {
                 <th>${vehicle.licensePlate}</th>
                 <th>${vehicle.created_at}</th>
                 <th>
-                    <button class="delete" data-license-plate="${vehicle.licensePlate}">X</button>
+                    <button class="delete" data-plate="${vehicle.licensePlate}">X</button>
                 </th>
             `;
+
+            row.querySelector(".delete")?.addEventListener("click", function(){
+                removeVehicle(this.dataset.plate)
+            })
 
             $("#parking")?.appendChild(row);
 
@@ -72,7 +98,7 @@ interface Vehicle {
         const vehicle = {
             name,
             licensePlate,
-            created_at: new Date()
+            created_at: new Date().toISOString()
         }
 
         parking().fillParkingSpace(vehicle, true)
